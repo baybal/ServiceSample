@@ -1,13 +1,10 @@
 {
-<<<<<<< HEAD
   "name": "middle-end",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Middleware for the test task",
-=======
   "name": "back-end",
   "version": "1.0.0",
   "description": "Back-end for the test task",
->>>>>>> ede5205a9274f4c399d3ec881ad64ed32451f8d0
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -15,11 +12,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-<<<<<<< HEAD
     "command-line-args": "^3.0.1",
     "command-line-usage": "^3.0.3",
-=======
->>>>>>> ede5205a9274f4c399d3ec881ad64ed32451f8d0
     "cookie": "^0.3.1",
     "http-proxy": "^1.14.0",
     "redis": "^2.6.2",
