@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="utf-8">
+	<title>Front-end for test task</title>
+	<link rel="stylesheet" href="css/base.css" />
+	<script src="js/react.min.js"></script>
+	<script src="js/react-dom.min.js"></script>
+	<script src="js/browser.min.js"></script>
+	<script src="js/jquery.min.js"></script>
+	<script src="js/remarkable.min.js"></script>
+</head>
+
+<body>
+	<div id="content"></div>
+	<script type="text/babel"> var NoteBox = React.createClass({ loadNotesFromServer: function() { $.get({ url: this.props.url, xhrFields: { withCredentials: true }, dataType: 'json', cache: false, success: function(entries) { console.log(entries); this.setState({ entries: entries.entries
+		}); }.bind(this), error: function(xhr, status, err) { console.error(this.props.url, status, err.toString()); }.bind(this) }); }, handleNoteSubmit: function(entry) { var entries = this.state.entries; var formdata = new FormData(); formdata.set('method','write');
+		formdata.set('value',entry.info); console.log(entry); this.setState({entries: entries.concat([entry])}); $.ajax({ url: this.props.url, xhrFields: { withCredentials: true }, dataType: 'json', contentType: false, type: 'POST', data: formdata, processData:
+		false, success: function(entries) { console.log(entries); this.setState({ entries: entries.entries }); }.bind(this), error: function(xhr, status, err) { this.setState({entries: entries}); console.error(this.props.url, status, err.toString()); }.bind(this)
+		}); }, handleEntryDelete: function(entry) { var entries = this.state.entries; var formdata = new FormData(); formdata.set('method','delete'); formdata.set('key',entry.id); console.log(entry); $.ajax({ url: this.props.url, xhrFields: { withCredentials:
+		true }, dataType: 'json', contentType: false, type: 'POST', data: formdata, processData: false, success: function(entries) { console.log(entries); this.setState({ entries: entries.entries }); }.bind(this), error: function(xhr, status, err) { this.setState({entries:
+		entries}); console.error(this.props.url, status, err.toString()); }.bind(this) }); }, handleEntryUpdate: function(entry) { var entries = this.state.entries; var formdata = new FormData(); formdata.set('method','write'); formdata.set('key',entry.id);
+		formdata.set('value',entry.info); console.log(entry); $.ajax({ url: this.props.url, xhrFields: { withCredentials: true }, dataType: 'json', contentType: false, type: 'POST', data: formdata, processData: false, success: function(entries) { console.log(entries);
+		this.setState({ entries: entries.entries }); }.bind(this), error: function(xhr, status, err) { this.setState({entries: entries}); console.error(this.props.url, status, err.toString()); }.bind(this) }); }, getCookie: function() { $.get({ url: this.props.url
+		+ 'auth', xhrFields: { withCredentials: true } }); console.log(this); }, getInitialState: function() { return { entries: [ {id: 1, info: "First, get the authentication cookies; Second, get Notes"}, ] } }, render: function() { return(
+		<div className="NoteBox">
+		<button id="getCookie" onClick={this.getCookie}>Get cookie</button> <button id="loadNotesFromServer" onClick={this.loadNotesFromServer}>Load notes</button>
+			<h1>Notes</h1>
+			<NoteList entries={this.state.entries} onEntryDelete={this.handleEntryDelete} onEntryUpdate={this.handleEntryUpdate}/>
+			<NoteForm onNoteSubmit={this.handleNoteSubmit}/> </div> ); } }); var NoteList = React.createClass({ render: function() { var NoteNodes = this.props.entries.map( function(entry) { console.log(this); return(
+		<Entry deleteHandle={this.props.onEntryDelete} updateHandle={this.props.onEntryUpdate} id={entry.id}
+			info={entry.info} />); }, this ); return(
+		<ul className="NoteList"> {NoteNodes} </ul> ); } }); var Entry = React.createClass({ deleteThis: function(entry){ console.log(this.props); this.props.deleteHandle({id: this.props.id}); }, updateThis: function(entry){ entry.preventDefault(); console.log(this.props); this.props.updateHandle({id:
+		this.props.id, info: this.state.info}); }, getInitialState: function() { return {info: this.props.info}; }, handleTodoChange: function(e) { this.setState({ info: e.target.value }); }, render: function() { return (
+		<li>
+			<form className="NoteForm" onSubmit={this.updateThis}> <input type="text" placeholder={this.state.info} value={this.state.info} onChange={this.handleTodoChange} /> <input type="submit" value="Update" /> </form> <button onClick={this.deleteThis}>Delete this note</button> </li> ); } }); var NoteForm = React.createClass({
+		getInitialState: function() { return {info: ''}; }, handleTodoChange: function(e) { this.setState({ info: e.target.value }); }, handleSubmit: function(e) { e.preventDefault(); var info = this.state.info.trim(); if(!info) { return; } this.props.onNoteSubmit({
+		info:info }); this.setState({ info: '' }); }, render: function() { return(
+		<form className="NoteForm" onSubmit={this.handleSubmit}> <input type="text" placeholder="A thing todo..." value={this.state.info} onChange={this.handleTodoChange} /> <input type="submit" value="Post" /> </form> ); } }); ReactDOM.render(
+		<NoteBox url={ 'http://' + window.location.hostname + ':8081' + '/'}
+		/>,document.getElementById('content') ); </script>
+</body>
+
+</html>
