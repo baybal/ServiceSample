@@ -42,7 +42,7 @@ function auth(req, res) {
 		finish(res);
 	} else {
 		db.get("SELECT tokens FROM auth_tokens WHERE tokens = ?", req.headers['authtoken'], (err, row) => {
-			err&&console.err('SQLite error: ' + err);
+			err && console.err('SQLite error: ' + err);
 			debug && !row ? console.log('Token not found') : console.log('Token found');
 			if(!row) {
 				output.code = 403;
@@ -56,6 +56,14 @@ function auth(req, res) {
 }
 
 function list(req, res) {
+	var body = [];
+	req.on('data', function(chunk) {
+		body.push(chunk);
+	}).on('end', function() {
+		body = Buffer.concat(body).toString();
+		console.log(body);
+		// at this point, `body` has the entire request body stored in it as a string
+	});
 	if(req.method == "POST" && req.headers['content-type'].startsWith('multipart/form-data')) {
 		var form = new multiparty.Form();
 		try {
@@ -63,9 +71,14 @@ function list(req, res) {
 				console.log("Parsing multipart");
 			}
 			form.parse(req, (err, keys) => {
-				if(!keys.method) {
+				if(!keys) {
 					output.outcome = 'Method undefined';
 					output.code = 500;
+					finish(res);
+				} else if(!keys.method) {
+					output.outcome = 'Method undefined';
+					output.code = 500;
+					finish(res);
 				} else if(err) {
 					parsingErrorParser(err, req);
 				} else {
@@ -76,13 +89,34 @@ function list(req, res) {
 								db.run("INSERT INTO 'todo_list' VALUES(?)", keys.value);
 								output.code = 200;
 								output.outcome = 'Entry written';
+								output.entries = [];
+								db.each("SELECT rowid AS id, info FROM todo_list", (err, row) => {
+									output.entries.push({
+										'id': row.id,
+										'info': row.info
+									});
+									//			!err&&parsingErrorParser.call(this, req, res);
+								}, () => {
+									finish(res);
+								});
 							} else if(!keys.value) {
 								output.outcome = 'Method argument absent';
 								output.code = 500;
+								finish(res);
 							} else {
 								db.run("UPDATE todo_list SET info = ? WHERE ROWID = ?", keys.value[0], keys.key[0]);
 								output.code = 200;
 								output.outcome = 'Entry updated';
+								output.entries = [];
+								db.each("SELECT rowid AS id, info FROM todo_list", (err, row) => {
+									output.entries.push({
+										'id': row.id,
+										'info': row.info
+									});
+									//			!err&&parsingErrorParser.call(this, req, res);
+								}, () => {
+									finish(res);
+								});
 							}
 							break;
 						case 'delete':
@@ -91,13 +125,23 @@ function list(req, res) {
 							output.outcome = 'Entry with key ' + keys.key + ' deleted';
 							//I still need to add a check to see if the value given does exist prior to deletion
 							db.run("DELETE FROM 'todo_list' WHERE ROWID = ?", keys.key[0]);
+							output.entries = [];
+							db.each("SELECT rowid AS id, info FROM todo_list", (err, row) => {
+								output.entries.push({
+									'id': row.id,
+									'info': row.info
+								});
+								//			!err&&parsingErrorParser.call(this, req, res);
+							}, () => {
+								finish(res);
+							});
 							break;
 						default:
 							output.code = 500;
 							output.outcome = 'Method not found';
+							finish(res);
 					}
 				}
-				finish(res);
 			});
 		} catch(err) {
 			//yet again, here should've been a proper exception handler
@@ -107,8 +151,12 @@ function list(req, res) {
 	} else {
 		output.outcome = 'Sending TODO';
 		output.code = 200;
+		output.entries = [];
 		db.each("SELECT rowid AS id, info FROM todo_list", (err, row) => {
-			output[row.id] = row.info;
+			output.entries.push({
+				'id': row.id,
+				'info': row.info
+			});
 			//			!err&&parsingErrorParser.call(this, req, res);
 		}, () => {
 			finish(res);
@@ -143,8 +191,9 @@ function finish(res) {
 	res.statusMessage = output.outcome;
 	res.setHeader('Content-Type', 'application/json');
 	res.setHeader('Access-Control-Allow-Origin', 'http://localhost');
-	res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');			
-	res.setHeader('Access-Control-Allow-Headers', 'DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type')
+//	res.setHeader('Access-Control-Allow-Origin', 'http://service-sample-baybal.c9users.io');
+	res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+	res.setHeader('Access-Control-Allow-Headers', 'DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type');
 	res.setHeader('Access-Control-Allow-Credentials', 'true');
 	res.write(JSON.stringify(output));
 	res.end();
@@ -157,4 +206,3 @@ db.run("CREATE TABLE if not exists todo_list (info TEXT)");
 db.run("CREATE TABLE if not exists auth_tokens (tokens TEXT)");
 server.listen(port);
 console.log('Server running at http://localhost:' + port + '/');
-
