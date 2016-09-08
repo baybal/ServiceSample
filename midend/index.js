@@ -37,7 +37,7 @@ optionDefinitions.forEach((v) => {
 	});
 });
 const options = commandLineArgs(parsedOptionDefinition);
-const port = 1338;
+const port = 8081;
 const target = 'http://localhost:1337';
 const http = require('http');
 const url = require('url');
@@ -90,7 +90,6 @@ function myProxy(req, res) {
 			err && console.error('Redis error: ' + err);
 			console.log('authtoken ' + value + '\n' + 'sessionid ' + cookie.parse(req.headers.cookie).sessionid);
 			var modReq = {};
-			debug && console.log(req);
 			modReq = req;
 			modReq.headers.authtoken = value;
 			proxy.web(modReq, res, {
@@ -108,7 +107,6 @@ function auth(req, res) {
 		path: '/token',
 		port: url.parse(target).port
 	};
-	console.log(options);
 	callback = function(beresponse) {
 		var str = '';
 		beresponse.on('data', function(chunk) {
@@ -122,16 +120,17 @@ function auth(req, res) {
 			res.statusMessage = 'Session cookie generated';
 			res.setHeader('Content-Type', 'application/json');
 			res.setHeader('Access-Control-Allow-Origin', 'http://localhost');
+			//res.setHeader('Access-Control-Allow-Origin', 'http://service-sample-baybal.c9users.io');
 			res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-			res.setHeader('Access-Control-Allow-Headers', 'DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type')
+			res.setHeader('Access-Control-Allow-Headers', 'DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type');
 			res.setHeader('Access-Control-Allow-Credentials', 'true');
 			res.setHeader('Set-Cookie', cookie.serialize('sessionid', sessionid, {
 				httpOnly: false,
-				maxAge: 60 * 60 * 24 * 7 // 1 week 
+				maxAge: 60 * 60 * 24 * 7 // 1 week
 			}));
 			res.end();
 		});
-	}
+	};
 	http.request(options, callback).end();
 }
 server.listen(port);
